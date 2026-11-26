@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="26c7359f-6581-43c9-8d07-e3e6497a861f" >
+		<http:listener-connection host="localhost" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="03761203-a0a0-4515-be22-9d38d478eaf5" >
+		<http:request-connection host="training4-american-ws.cloudhub.io" port="80" />
+	</http:request-config>
+	<flow name="choice-requestFlow" doc:id="841f87f1-11a0-4e42-adfe-0b054ce99579" >
+		<http:listener doc:name="Listener" doc:id="e58af049-a3c4-41c8-b8b4-8c08800c6aae" config-ref="HTTP_Listener_config" path="/choice-request"/>
+		<logger level="INFO" doc:name="Logger" doc:id="2efabdcb-87c9-47e2-bd15-5bdd5a96f2f7" message="flow started"/>
+		<http:request method="GET" doc:name="Request" doc:id="7314e4cc-14a7-4646-a36b-3f6a7667e9df" config-ref="HTTP_Request_configuration" path="/api/flights"/>
+		<ee:transform doc:name="Transform Message" doc:id="b8b4af84-ec29-4912-99b3-be863b030251" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="travell" ><![CDATA[%dw 2.0
+output application/json
+---
+[]]]></ee:set-variable>
+				<ee:set-variable variableName="airbus" ><![CDATA[%dw 2.0
+output application/json
+---
+[]]]></ee:set-variable>
+				<ee:set-variable variableName="varset" ><![CDATA[%dw 2.0
+output application/json
+---
+[]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<foreach doc:name="For Each" doc:id="26a76653-9fa2-46a4-9853-bf96913ee474" >
+			<choice doc:name="Choice" doc:id="19558273-da4b-4088-800f-60df16487c92" >
+				<when expression='#[payload.origin=="MUA" and payload.destination =="SFO"]'>
+					<ee:transform doc:name="Transform Message" doc:id="e112a9ee-c02c-4151-b220-c25482ac686c" >
+						<ee:message >
+						</ee:message>
+						<ee:variables >
+							<ee:set-variable variableName="travell" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.travell + payload]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</when>
+				<when expression='#[(payload.origin=="MUA")and(payload.destination=="CLE")]'>
+					<ee:transform doc:name="Transform Message" doc:id="cec12366-f320-4b70-a338-4e924c88fc9d" >
+						<ee:message >
+						</ee:message>
+						<ee:variables >
+							<ee:set-variable variableName="varset" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.varset +payload]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</when>
+				<otherwise >
+					<ee:transform doc:name="Transform Message" doc:id="fd6be29e-d9bd-43db-9f68-9517f9bf1f5f" >
+						<ee:message >
+						</ee:message>
+						<ee:variables >
+							<ee:set-variable variableName="airbus" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.airbus+payload]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</otherwise>
+			</choice>
+		</foreach>
+		<ee:transform doc:name="Transform Message" doc:id="2c9eecc0-78a2-4908-88b5-20c2c797e2a6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+"success": vars.travell,
+"sucessfull": vars.varset,
+"fail" : vars.airbus
+
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="f1d7dfe8-3625-4dd6-9fc2-fe3ed5b48f84" message="floe ended"/>
+	</flow>
+</mule>
